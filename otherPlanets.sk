@@ -1,0 +1,220 @@
+on load:
+	register new shaped recipe with result blast furnace named "&8Fuel compressor" using iron block, diamond block, iron block, furnace, furnace, furnace, coal block, coal block, coal block
+	register new shaped recipe with result firework rocket named "&cRocket" using redstone, redstone torch, redstone, diamond block, diamond block, diamond block, gold block, flint and steel, gold block
+	broadcast "&aRecipes loaded"
+
+command /addPlanet <text> <text> <number> <number>:
+	permission: OtherPlanets.add
+	usage: /addPlanet <planet name> <world name> <minimum tier> <minimum fuel>
+	trigger:
+		if arg 1 is not "planets":
+			set {_planet} to "%arg-1%,%arg-2%,%arg-3%,%arg-4%"
+			add {_planet} to {planets::*}
+		else:
+			send "&cYou can't set the name of a planet to %arg-1%" to player
+
+command /removePlanet <text>:
+	permission: OtherPlanets.remove
+	usage: /removePlanet <planet name>
+	trigger:
+		loop {planets::*}:
+			set {_planet} to {planets::%loop-index%}
+			set {_planetSplitted::*} to {_planet} split at ","
+			if {_planetSplitted::1} is arg-1:
+				remove {_planet} from {planets::*}
+				exit loop
+		send "&cRemoved %arg-1%"
+
+command /removeAllPlanets:
+	permission: OtherPlanets.remove
+	trigger:
+		clear {planets::*}
+
+command /planetTP <text>[<player>]:
+	usage: /planetTP <text> [player]
+	permission: otherPlanets.forcetp
+	trigger:
+		if arg 1 is set:
+			loop {planets::*}:
+				set {_planet} to {planets::%loop-index%}
+				set {_planetSplitted::*} to {_planet} split at ","
+				if {_planetSplitted::1} is arg-1:
+					set {_x} to random number between -1000 and 1000
+					set {_y} to 200
+					set {_z} to random number between -1000 and 1000
+					set {_loc} to the location at {_x}, {_y}, {_z}
+					teleport player to location({_x}, {_y}, {_z}, world("%{_planetSplitted::2}%"))
+					apply potion of slow falling of tier 1 to player for 40 seconds
+		
+
+command /planets:
+	permission: OtherPlanets.list
+	trigger:
+		loop {planets::*}:
+			set {_planet} to {planets::%loop-index%}
+			set {_planetSplitted::*} to {_planet} split at ","
+			send "&aName: %{_planetSplitted::1}%&a, &2World: %{_planetSplitted::2}%&2, &cTier: %{_planetSplitted::3}%&c, &6Minimum fuel: %{_planetSplitted::4}%"
+
+on any move:
+	if {OnRocket.%uuid of player%} is true:
+		cancel event
+
+on right click with firework rocket:
+	if name of player's held item is "&cRocket":
+		cancel event
+		set metadata tag "RocketGUI" of player to chest inventory with 2 row named "&cRocket"
+		set slot 0 of metadata tag "RocketGUI" of player to white glass pane named " "
+		set slot 1 of metadata tag "RocketGUI" of player to white glass pane named " Compressed Fuel ->"
+		set slot 3 of metadata tag "RocketGUI" of player to green glass pane named "&aAdd fuel to Rocket"
+		set slot 4 of metadata tag "RocketGUI" of player to white glass pane named " "
+		set slot 5 of metadata tag "RocketGUI" of player to white glass pane named " "
+		set slot 6 of metadata tag "RocketGUI" of player to white glass pane named " "
+		set slot 7 of metadata tag "RocketGUI" of player to white glass pane named " "
+		set slot 8 of metadata tag "RocketGUI" of player to white glass pane named " "
+		set {_n} to 0
+		loop 9 times:
+			add 1 to {_n}
+			set {_planet} to {planets::%loop-number%}
+			set {_planetSplitted::*} to {_planet} split at ","
+			set {_slot} to 8 + {_n}
+			if {_n} >= size of {_planetSplitted::*} - 1:
+				set slot {_slot} of metadata tag "RocketGUI" of player to white wool named " "
+			else:
+				if player's world is "%{_planetSplitted::2}%":
+					set slot {_slot} of metadata tag "RocketGUI" of player to red wool named "%{_planetSplitted::1}%" with lore "You are already in this planet","Fuel cost: %{_planetSplitted::4}%"
+				else:
+					set slot {_slot} of metadata tag "RocketGUI" of player to green wool named "%{_planetSplitted::1}%" with lore "Click me to travel here","Fuel cost: %{_planetSplitted::4}%"
+		open (metadata tag "RocketGUI" of player) to player
+
+on craft:
+	if name of event-item is "&cRocket":
+		set {_id} to a random number between 1 and 50000
+		set {_id} to round ({_id})
+		set lore of event-item to "ID: %{_id}%"
+	loop 9 times:
+		set {_item} to slot loop-number of player's current inventory
+		if name of {_item} is "&cRocket":
+			cancel event
+			exit loop
+
+on place:
+	if player's held item is a lava bucket:
+		if name of player's held item is "&aCompressed Fuel":
+			cancel event
+
+on place of a blast furnace:
+	If name of player's tool is "&8Fuel compressor":
+		set metadata tag "FuelCompressorGUI" of player to chest inventory with 1 row named "&8Fuel Compressor"
+		set slot 0 of metadata tag "FuelCompressorGUI" of player to white glass pane named " "
+		set slot 1 of metadata tag "FuelCompressorGUI" of player to white glass pane named " "
+		set slot 3 of metadata tag "FuelCompressorGUI" of player to white glass pane named "Lava Bucket -->"
+		set slot 2 of metadata tag "FuelCompressorGUI" of player to white glass pane named " "
+		set slot 5 of metadata tag "FuelCompressorGUI" of player to green glass pane named "Create Fuel"
+		set slot 6 of metadata tag "FuelCompressorGUI" of player to white glass pane named " "
+		set slot 7 of metadata tag "FuelCompressorGUI" of player to white glass pane named " "
+		set slot 8 of metadata tag "FuelCompressorGUI" of player to white glass pane named " "
+		set slot 9 of metadata tag "FuelCompressorGUI" of player to white glass pane named " "
+		open (metadata tag "FuelCompressorGUI" of player) to player
+		cancel event
+
+on inventory close:
+	if event-inventory = (metadata tag "RocketGUI" of player):
+		set {_item} to slot 2 of metadata tag "RocketGUI" of player
+		give {_item} to player
+	if event-inventory = (metadata tag "FuelCompressorGUI" of player):
+		set {_item} to slot 4 of metadata tag "FuelCompressorGUI" of player
+		give {_item} to player
+
+on inventory click:
+	if event-inventory = (metadata tag "RocketGUI" of player):
+		if index of event-slot is 0:
+			cancel event
+		if index of event-slot is 1:
+			cancel event
+		if index of event-slot is 3:
+			cancel event
+			if slot 2 of metadata tag "RocketGUI" of player is a lava bucket:
+				if name of  slot 2 of metadata tag "RocketGUI" of player is "&aCompressed Fuel":
+					set slot 2 of metadata tag "RocketGUI" of player to air
+					set  {_lore} to line 2 of the lore of player's held item
+					if  {_lore} is not "":
+						set {_loreSplitted::*} to {_lore} split at " "
+						set {_loreSplitted::2} to {_loreSplitted::2} parsed as num
+						add  1 to {_loreSplitted::2}
+						set line 2 of the lore of player's held item to "Fuel: %{_loreSplitted::2}%"
+					else:
+						set line 2 of the lore of player's held item to "Fuel: 1"
+				else:
+					cancel event
+					set slot 3 of metadata tag "RocketGUI" of player to red glass pane named "You must put compressed fuel in the 2nd slot"
+					wait 30 ticks
+					set slot 3 of metadata tag "RocketGUI" of player to green glass pane named "&aAdd fuel to Rocket"
+			else:
+				cancel event
+				set slot 3 of metadata tag "RocketGUI" of player to red glass pane named "You must put compressed fuel in the 2nd slot"
+				wait 30 ticks
+				set slot 3 of metadata tag "RocketGUI" of player to green glass pane named "&aAdd fuel to Rocket"
+		if index of event-slot is 4:
+			cancel event
+		if index of event-slot is 5:
+			cancel event
+		if index of event-slot is 6:
+			cancel event
+		if index of event-slot is 7:
+			cancel event
+		if index of event-slot is 8:
+			cancel event
+		loop 9 times:
+			cancel event
+			set {_planetName} to name of slot (index of event-slot) of metadata tag "RocketGUI" of player
+			loop {planets::*}:
+				set {_planet} to {planets::%loop-index%}
+				set {_planetSplit::*} to {_planet} split at ","
+				if  player's world is not "%{_planetSplit::2}%":
+					if {_planetName} is {_planetSplit::1}:
+						set {_lore} to line 2 of the lore of player's held item
+						set {_loreSplitted::*} to {_lore} split at " "
+						set {_fuel} to {_loreSplitted::2} parsed as num
+						set {_planetSplit::4} to {_planetSplit::4} parsed as num
+						if {_fuel} >= {_planetSplit::4}:
+							set {_fuel} to {_fuel} - {_planetSplit::4}
+							set line 2 of the lore of player's held item to "Fuel: %{_fuel}%"
+							set {_x} to random number between -1000 and 1000
+							set {_y} to 200
+							set {_z} to random number between -1000 and 1000
+							set {_loc} to the location at {_x}, {_y}, {_z}
+							teleport player to location({_x}, {_y}, {_z}, world("%{_planetSplit::2}%"))
+							apply potion of slow falling of tier 1 to player for 40 seconds
+						else:
+							send "&cYour rocket does not have enough fuel to travel here" to player
+					exit 2 loops
+	else if event-inventory = (metadata tag "FuelCompressorGUI" of player):
+		if index of event-slot is 0:
+			cancel event
+		if index of event-slot is 1:
+			cancel event
+		else if index of event-slot is 2:
+			cancel event
+		else if index of event-slot is 3:
+			cancel event
+		else if index of event-slot is 5:
+			if event-item is green glass pane:
+				if slot 4 of metadata tag "FuelCompressorGUI" of player is a lava bucket:
+					set slot 4 of metadata tag "FuelCompressorGUI" of player to a lava bucket named "&aCompressed Fuel" with lore "used to fuel rockets"
+					send "&aThe lava was turned into fuel" to player
+					cancel event
+				else:
+					cancel event
+					set slot 5 of metadata tag "FuelCompressorGUI" of player to red glass pane named "You must put a lava bucket in the 4th slot"
+					wait 30 ticks
+					set slot 5 of metadata tag "FuelCompressorGUI" of player to green glass pane named "Create Fuel"
+			else:
+				cancel event
+		else if index of event-slot is 6:
+			cancel event
+		else if index of event-slot is 7:
+			cancel event
+		else if index of event-slot is 8:
+			cancel event
+		else if index of event-slot is 9:
+			cancel event
